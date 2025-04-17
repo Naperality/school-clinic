@@ -1,0 +1,36 @@
+/* Add this to your StudentDashboard.css */
+body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    background-color: #f4f6f8;
+  }
+  
+  .MuiDrawer-paper {
+    background-color: #34495E !important;
+  }
+  
+  .MuiAppBar-root {
+    background-color: #2C3E50;
+  }
+  
+  .MuiButton-root {
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .MuiButton-containedPrimary {
+    background-color: #2980B9;
+  }
+  
+  .MuiButton-containedSecondary {
+    background-color: #8E44AD;
+  }
+  
+  .MuiButton-outlinedError {
+    border-color: #E74C3C;
+  }
+  
+  .MuiButton-outlinedError:hover {
+    background-color: #E74C3C;
+    color: white;
+  }
+  

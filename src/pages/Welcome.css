@@ -1,0 +1,76 @@
+/* Welcome Page Styles */
+.welcome-container {
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); /* Midnight Sky Gradient */
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Roboto', sans-serif; /* Clean, modern font */
+}
+
+.welcome-content {
+  text-align: center;
+  color: #ECF0F1; /* Light Text */
+  padding: 2rem;
+  background-color: rgba(15, 23, 42, 0.85); /* Adjusted to match the Sign Up/Login style */
+  border-radius: 20px; /* Rounded corners for a smooth look */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 100%;
+}
+
+.welcome-content h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #ECF0F1; /* Light text for the title */
+  font-weight: 700;
+}
+
+.welcome-content p {
+  font-size: 1.2rem;
+  color: #ECF0F1;
+  margin-bottom: 2rem;
+}
+
+.welcome-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.welcome-btn {
+  background: linear-gradient(135deg, #4458dc, #854fee); /* Matching gradient for the button */
+  color: #ECF0F1;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.3s ease, background 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-btn:hover {
+  background: linear-gradient(135deg, #4f66e2, #9560ff); /* Matching hover effect */
+  transform: translateY(-3px); /* Slight lift on hover */
+}
+
+.welcome-btn:active {
+  transform: translateY(1px); /* Slight push down when clicked */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .welcome-content {
+    padding: 1.5rem;
+    max-width: 90%;
+  }
+
+  .welcome-content h1 {
+    font-size: 2rem;
+  }
+
+  .welcome-content p {
+    font-size: 1rem;
+  }
+}

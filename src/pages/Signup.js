@@ -12,8 +12,7 @@ const Signup = () => {
   const [role, setRole] = useState("student");
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
-  const [birthYear, setBirthYear] = useState("");
-  const [profilePictureUrl, setProfilePictureUrl] = useState("");
+  const [birthDate, setBirthDate] = useState("");
 
   const navigate = useNavigate();
 
@@ -22,18 +21,27 @@ const Signup = () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      console.log("User Created:", user);
 
-      await setDoc(doc(db, "users", user.uid), {
+      // Set default profile picture URL or leave it blank
+      const profilePictureUrl = "https://www.example.com/default-avatar.png"; // Placeholder image URL
+
+      const userData = {
         email,
         role,
         name,
         age,
-        birthYear,
-        profilePictureUrl,
-      });
+        birthDate,
+        profilePictureUrl, // Using the default avatar URL
+      };
+      console.log("Data to save:", userData);  // Check the data you're saving
+
+      await setDoc(doc(db, "users", user.uid), userData);
+      console.log("Data successfully saved to Firestore!");
 
       navigate("/dashboard");
     } catch (error) {
+      console.error("Error during signup:", error);
       alert(error.message);
     }
   };
@@ -59,21 +67,22 @@ const Signup = () => {
           <input
             type="number"
             placeholder="Age"
-            onChange={(e) => setAge(e.target.value)}
+            value={age}
+            onChange={(e) => {
+              const val = e.target.value;
+              // Only allow whole numbers between 1 and 120
+              if (/^\d{0,3}$/.test(val) && +val >= 0 && +val <= 120) {
+                setAge(val);
+              }
+            }}
             required
             className="form-input"
           />
           <input
-            type="number"
-            placeholder="Birth Year"
-            onChange={(e) => setBirthYear(e.target.value)}
+            type="date"
+            placeholder="Birth Date"
+            onChange={(e) => setBirthDate(e.target.value)}
             required
-            className="form-input"
-          />
-          <input
-            type="url"
-            placeholder="Profile Picture URL"
-            onChange={(e) => setProfilePictureUrl(e.target.value)}
             className="form-input"
           />
           <input

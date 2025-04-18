@@ -10,8 +10,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import Dashboard from "./pages/Dashboard";
 import PrivateRoute from "./components/PrivateRoute";
 import { AuthProvider } from "./context/AuthContext";
-import BookAppointment from "./pages/BookAppointment";
-import MyAppointments from "./pages/MyAppointments";
+
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -39,7 +38,7 @@ const AnimatedRoutes = () => {
             </PrivateRoute>
           }
         />
-        <Route
+        {/* <Route
           path="/book"
           element={
             <PrivateRoute role="student">
@@ -54,7 +53,7 @@ const AnimatedRoutes = () => {
               <MyAppointments />
             </PrivateRoute>
           }
-        />
+        /> */}
       </Routes>
     </AnimatePresence>
   );

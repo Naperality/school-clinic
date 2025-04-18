@@ -1,36 +1,122 @@
-/* Add this to your StudentDashboard.css */
+/* StudentDashboard.css */
+
 body {
-    margin: 0;
-    font-family: 'Roboto', sans-serif;
-    background-color: #f4f6f8;
-  }
-  
-  .MuiDrawer-paper {
-    background-color: #34495E !important;
-  }
-  
-  .MuiAppBar-root {
-    background-color: #2C3E50;
-  }
-  
-  .MuiButton-root {
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .MuiButton-containedPrimary {
-    background-color: #2980B9;
-  }
-  
-  .MuiButton-containedSecondary {
-    background-color: #8E44AD;
-  }
-  
-  .MuiButton-outlinedError {
-    border-color: #E74C3C;
-  }
-  
-  .MuiButton-outlinedError:hover {
-    background-color: #E74C3C;
-    color: white;
-  }
-  
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  background-color: #f4f6f8;
+}
+
+.MuiDrawer-paper {
+  background-color: #34495E !important;
+}
+
+.MuiAppBar-root {
+  background-color: #2C3E50;
+}
+
+.MuiButton-root {
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.MuiButton-containedPrimary {
+  background-color: #2980B9;
+}
+
+.MuiButton-containedSecondary {
+  background-color: #8E44AD;
+}
+
+.MuiButton-outlinedError {
+  border-color: #E74C3C;
+}
+
+.MuiButton-outlinedError:hover {
+  background-color: #E74C3C;
+  color: white;
+}
+
+/* Make the calendar taller by increasing tile height and padding */
+.react-calendar {
+  width: 100% !important;
+  max-width: 900px;
+  margin: 0 auto;
+  font-size: 1.2em;
+  padding-bottom: 40px; /* Add extra space below if needed */
+}
+
+/* Increase height of each tile */
+.react-calendar__tile {
+  font-size: 1.2em;
+  padding: 30px 0 !important; /* Increased vertical padding for height */
+  height: 60px !important; /* Explicit tile height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Optional: make the calendar itself take more vertical space */
+.react-calendar__viewContainer {
+  min-height: 300px; /* Adjust this value to make the whole calendar taller */
+}
+
+.react-calendar__tile--active {
+  background-color: #1e88e5;
+  color: white;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.react-calendar__tile--hover {
+  background-color: #2980B9;
+  color:white;
+}
+
+.react-calendar__tile--now {
+  background-color: #8E44AD;
+  color: black;
+}
+
+.react-calendar__month-view__weekdays {
+  background-color: #34495E;
+}
+
+.react-calendar__month-view__weekdays__weekday {
+  color: white;
+  font-weight: bold;
+}
+
+.react-calendar__navigation {
+  background-color: #2C3E50;
+  color: white;
+  border-radius: 5px;
+}
+
+.react-calendar__navigation button {
+  background-color: #2980B9;
+  color: white;
+  border: none;
+  padding: 12px 20px; /* Larger padding for navigation buttons */
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.react-calendar__navigation button:hover {
+  background-color: #1e88e5;
+  color: black;
+}
+
+/* Optional: Add some custom styles for selected dates */
+.react-calendar__tile--range {
+  background-color: #1e88e5;
+  color: white;
+}
+
+.react-calendar__tile--rangeStart,
+.react-calendar__tile--rangeEnd {
+  background-color: #1e88e5;
+  color: white;
+}
+
+/* Additional calendar tile styling for weekend */
+.react-calendar__tile--weekend {
+  background-color: #f5f5f5;
+}

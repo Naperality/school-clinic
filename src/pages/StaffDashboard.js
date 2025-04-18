@@ -18,6 +18,8 @@ import Badge from '@mui/material/Badge';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import MenuIcon from '@mui/icons-material/Menu';
+
 
 import {
   Drawer,
@@ -27,6 +29,7 @@ import {
   Divider,
   Box,
   Typography,
+  Button,
 } from '@mui/material';
 
 const StaffDashboard = () => {
@@ -35,6 +38,7 @@ const StaffDashboard = () => {
   const [vaccineAvailability, setVaccineAvailability] = useState([]);
   const [calendarNotes, setCalendarNotes] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(true); // default open
 
   const [doctorName, setDoctorName] = useState("");
   const [availableTimes, setAvailableTimes] = useState([]);
@@ -48,6 +52,10 @@ const StaffDashboard = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const toggleDrawer = () => {
+    setIsDrawerOpen((prev) => !prev);
+  };  
 
   const handleNotificationClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -159,49 +167,76 @@ const StaffDashboard = () => {
     <Box sx={{ display: "flex" }}>
       {/* Sidebar */}
       <Drawer
-        variant="permanent"
-        anchor="left"
+        variant="persistent"
+        open={isDrawerOpen}
         sx={{
           width: 240,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
             width: 240,
             boxSizing: 'border-box',
+            backgroundColor: '#2c3e50',
+            color: 'white',
+            paddingTop: '20px',
           },
         }}
       >
-        <List>
-          <ListItem button onClick={() => setSelectedSection("profile")}>
-            <ListItemText primary="Profile" />
-          </ListItem>
-          <Divider />
-          <ListItem button onClick={() => setSelectedSection("doctor")}>
-            <ListItemText primary="Add Doctor/Dentist" />
-          </ListItem>
-          <Divider />
-          <ListItem button onClick={() => setSelectedSection("vaccine")}>
-            <ListItemText primary="Add Vaccine" />
-          </ListItem>
-          <Divider />
-          <ListItem button onClick={() => setSelectedSection("appointments")}>
-            <ListItemText primary="View Appointments" />
-          </ListItem>
-          <Divider />
-          <ListItem button onClick={handleLogout}>
-            <ListItemText primary="Logout" />
-          </ListItem>
-        </List>
+        <IconButton onClick={toggleDrawer} sx={{ color: 'white', ml: 1, mb: 1 }}>
+          <MenuIcon />
+        </IconButton>
+      <List>
+        {[
+          { text: 'Profile', section: 'profile' },
+          { text: 'Add Doctor/Dentist', section: 'doctor' },
+          { text: 'Add Vaccine', section: 'vaccine' },
+          { text: 'View Appointments', section: 'appointments' },
+          { text: 'Logout', action: handleLogout }
+        ].map((item, index, array) => (
+          <React.Fragment key={index}>
+            <ListItem
+              button
+              onClick={() =>
+                item.action ? item.action() : setSelectedSection(item.section)
+              }
+              sx={{
+                '&:hover': {
+                  backgroundColor: '#34495e',
+                },
+                paddingY: 1,
+                paddingX: 2,
+              }}
+            >
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{
+                  sx: { color: 'white', fontWeight: 500 },
+                }}
+              />
+            </ListItem>
+            {index !== array.length - 1 && (
+              <Divider sx={{ backgroundColor: '#34495e' }} />
+            )}
+          </React.Fragment>
+        ))}
+      </List>
       </Drawer>
 
       {/* Main Content */}
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 3,
+            backgroundColor: '#ecf0f1',
+            minHeight: '100vh',
+          }}
+        >
         <Box display="flex" justifyContent="flex-end" alignItems="center" mb={2}>
           <IconButton color="inherit" onClick={handleNotificationClick}>
             <Badge badgeContent={unreadCount} color="error">
               <NotificationsIcon />
             </Badge>
           </IconButton>
-
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
@@ -222,8 +257,13 @@ const StaffDashboard = () => {
             )}
           </Menu>
         </Box>
-        <Typography variant="h4" gutterBottom>Staff Dashboard</Typography>
-        <Typography variant="body1" gutterBottom>Welcome, staff! Use the menu to manage data.</Typography>
+        <Typography variant="h4" gutterBottom sx={{ color: '#34495e' }}>
+          Staff Dashboard
+        </Typography>
+
+        <Typography variant="body1" gutterBottom sx={{ color: '#7f8c8d' }}>
+          Welcome, staff! Use the menu to manage data.
+        </Typography>
         {renderSection()}
       </Box>
     </Box>

@@ -31,12 +31,12 @@ import {
   addDoc
 } from "firebase/firestore";
 import { db } from "../firebase";
-
 import { deleteDoc } from "firebase/firestore";
 import { Calendar as BigCalendar, Views } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
+import { firestore } from "../firebase"; // Adjust path based on where your firebase config is
 
 const DragAndDropCalendar = withDragAndDrop(BigCalendar);
 
@@ -60,10 +60,15 @@ const CalendarView = ({ selectedDate }) => {
   const [approvedAppointments, setApprovedAppointments] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
 
+  const [filteredDoctors, setFilteredDoctors] = useState([]);
+
   const [availableTimes, setAvailableTimes] = useState([]);
-  const [selectedDoctor, setSelectedDoctor] = useState("");
+  const [selectedDoctor, setSelectedDoctor] = useState(doctors[0]?.id || '');
+  const [selectedTime, setSelectedTime] = useState(availableTimes[0] || '');
   const [selectedDoctorType, setSelectedDoctorType] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
+
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [selectedUserForVaccine, setSelectedUserForVaccine] = useState("");
 
   const calendarRef = useRef();
 
@@ -75,50 +80,85 @@ const CalendarView = ({ selectedDate }) => {
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "appointments"), (snapshot) => {
-      const eventList = [];
+      const pendingList = [];
       const approvedList = [];
-
+      const disapprovedList = [];
+  
+      const now = new Date();
+  
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        const status = data.status;
+        let status = data.status;
         const appointmentDate = new Date(data.date?.toDate());
-
+  
         let startDate = new Date(appointmentDate);
         let endDate = new Date(appointmentDate);
-
+  
+        // If approved, use confirmed time
         if (status === "Approved" && data.confirmedTime?.toDate) {
           startDate = data.confirmedTime.toDate();
           endDate = new Date(startDate);
           endDate.setHours(startDate.getHours() + 1);
+  
+          // ✅ If time passed, mark as Done and update Firestore
+          if (endDate < now) {
+            status = "Done";
+  
+            const appointmentRef = doc(db, "appointments", docSnap.id);
+            updateDoc(appointmentRef, {
+              status: "Done"
+            }).catch((err) => console.error("Error updating to Done:", err));
+          }
         }
-
+  
+        // Create event object
         const event = {
           id: docSnap.id,
           title:
             status === "Approved"
               ? `Approved: ${data.reason}`
+              : status === "Done"
+              ? `Done: ${data.reason}`
               : `${status}: ${data.timePreference} - ${data.reason}`,
           start: startDate,
           end: endDate,
-          allDay: status !== "Approved",
+          allDay: status !== "Approved" && status !== "Done",
           note: data.reason,
           studentId: data.studentId,
           status: status,
           timePreference: data.timePreference,
           confirmedTime: data.confirmedTime?.toDate ? data.confirmedTime.toDate() : null,
           doctor: data.doctor,
+          color: status === "Done" ? "blue" : undefined,
         };
-
-        if (status === "Pending") eventList.push(event);
-        if (status === "Approved") approvedList.push(event);
+  
+        // Categorize
+        if (status === "Pending") {
+          pendingList.push(event);
+        } else if (status === "Approved") {
+          approvedList.push(event);
+        } else if (status === "Disapproved") {
+          disapprovedList.push(event);
+        } else if (status === "Done") {
+          approvedList.push(event); // Or move to a separate "doneList" if you want to split
+        }
       });
-
-      setEvents((prev) => [...prev.filter(e => e.status === "Note"), ...eventList, ...approvedList]);
-      setApprovedAppointments(approvedList);
+  
+      // Set events: include only notes from previous, rest from live snapshot
+      setEvents((prev) => [
+        ...prev.filter(e => e.status === "Note"),
+        ...pendingList,
+        ...approvedList,
+        ...disapprovedList,
+      ]);
+  
+      setApprovedAppointments(approvedList); // Could rename to something like `upcomingAndDone`
     });
-
+  
     return () => unsubscribe();
   }, []);
+  
+  
 
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -186,7 +226,18 @@ const CalendarView = ({ selectedDate }) => {
     }
   }, [selectedDoctor, doctors, selectedEvent, approvedAppointments]);
 
+  useEffect(() => {
+    if (selectedEvent?.start && doctors.length > 0) {
+      const dayOfWeek = new Date(selectedEvent.start).toLocaleDateString('en-US', { weekday: 'long' });
+      const filtered = doctors.filter(doc =>
+        doc.availableDays?.includes(dayOfWeek)
+      );
+      setFilteredDoctors(filtered);
+    }
+  }, [selectedEvent, doctors]);
+
   const handleSelectSlot = ({ start, end }) => {
+    if (start < new Date()) return;
     const existingEvent = events.find(event => event.start.toDateString() === start.toDateString());
     if (!existingEvent) {
       setSelectedEvent({ start, end, note: "" });
@@ -194,6 +245,63 @@ const CalendarView = ({ selectedDate }) => {
     }
   };
 
+  useEffect(() => {
+    const fetchVaccines = async () => {
+      const vaccinesSnapshot = await getDocs(collection(db, "events"));
+      const vaccineEvents = vaccinesSnapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
+        
+        // Ensure the 'start' and 'end' fields are present and valid
+        const start = data.start ? data.start.toDate() : null;  // Check if 'start' exists
+        const end = data.end ? data.end.toDate() : null;        // Check if 'end' exists
+  
+        // Only create an event if both 'start' and 'end' are valid
+        if (start && end) {
+          return {
+            id: docSnap.id,
+            title: `Vaccine: ${data.title}`,  // Display vaccine type as the event title
+            start: start,
+            end: end,
+            allDay: true,                    // Set to true if it's an all-day event
+            vaccineType: data.description,          // Store the vaccine type in the event data
+            status: "Vaccine",               // Set the status as 'Vaccine'
+          };
+        }
+  
+        // If start or end is missing, return null (to ignore this event)
+        return null;
+      }).filter(event => event !== null);  // Filter out any null events (missing start/end)
+  
+      // Add vaccines to state only if they don't already exist
+      setEvents((prev) => {
+        const uniqueVaccines = vaccineEvents.filter((vaccine) => !prev.some((event) => event.id === vaccine.id));
+        return [...uniqueVaccines, ...prev];
+      });
+    };
+  
+    fetchVaccines();
+  }, []);  
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      // Get all users from the "users" collection
+      const usersSnapshot = await getDocs(collection(db, "users"));
+      
+      // Filter out users where the role is "student"
+      const filteredUsers = usersSnapshot.docs
+        .map(docSnap => {
+          const data = docSnap.data();
+          return { id: docSnap.id, ...data };
+        })
+        .filter(user => user.role === "student");
+  
+      // Update state with the filtered list of students
+      setFilteredUsers(filteredUsers);
+    };
+  
+    fetchStudents();
+  }, []);
+  
   const handleEventClick = (event) => {
     // Always set selectedEvent to the clicked event
     setSelectedEvent(event);
@@ -201,7 +309,7 @@ const CalendarView = ({ selectedDate }) => {
     // If it's a "Note", allow it to show the delete option
     if (event.status === "Note") {
       setDialogOpen(true);
-      setIsEditing(false); // You can set this to false if you don't want editing for notes
+      setIsEditing(true); // You can set this to false if you don't want editing for notes
     } else {
       // For non-note events, proceed with the normal flow (like appointment approval)
       setDialogOpen(true);
@@ -347,7 +455,8 @@ const CalendarView = ({ selectedDate }) => {
       console.log("No note ID found for deletion."); // Log if no ID is available
     }
   };  
-  
+  console.log("selectedEvent:", selectedEvent);
+
   return (
     <Box sx={{ height: "80vh" }}>
       <DragAndDropCalendar
@@ -376,9 +485,10 @@ const CalendarView = ({ selectedDate }) => {
         eventPropGetter={(event) => {
           let backgroundColor = "";
           let textColor = "black";
-          let title = event.title;
   
           if (event.status === "Pending") backgroundColor = "#FFEB3B";
+          else if (event.status === "Done") backgroundColor = "#4a90e2";
+          else if (event.status === "Vaccine") backgroundColor = "#f8c8d1";
           else if (event.status === "Approved") backgroundColor = "#4CAF50";
           else if (event.status === "Disapproved") {
             backgroundColor = "#f44336";
@@ -401,19 +511,28 @@ const CalendarView = ({ selectedDate }) => {
       />
   
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-        <DialogTitle>
-          {selectedEvent?.id ? "Manage Appointment" : "Add a Note"}
-        </DialogTitle>
-        <DialogContent>
-          {selectedEvent?.id ? (
+      <DialogTitle>
+                  {
+                    selectedEvent?.status === "Note" || !selectedEvent
+                      ? "Note"
+                      : selectedEvent?.status === "Vaccine"
+                      ? "Manage Vaccine"
+                      : "Manage Appointment"
+                  }
+                </DialogTitle>
+                <DialogContent>
+                
+                {selectedEvent?.status === "Disapproved" && (
             <>
+              {/* Appointment Fields */}
               <Typography variant="body2" sx={{ mb: 1 }}>
                 Student ID: {selectedEvent.studentId}
               </Typography>
               <Typography variant="body2" sx={{ mb: 2 }}>
                 Reason: {selectedEvent.note}
               </Typography>
-  
+
+              {/* Doctor Type Select */}
               <FormControl fullWidth margin="dense">
                 <InputLabel>Type of Doctor</InputLabel>
                 <Select
@@ -422,9 +541,9 @@ const CalendarView = ({ selectedDate }) => {
                     setSelectedDoctorType(e.target.value);
                     setSelectedDoctor("");
                   }}
-                  disabled={!isEditing}  // Disable until "Edit" is clicked
+                  disabled={!isEditing} // Disabled when not in editing mode
                 >
-                  {[...new Set(doctors.map((doc) => doc.type))].map((type, index) => (
+                  {[...new Set(filteredDoctors.map((doc) => doc.type))].map((type, index) => (
                     <MenuItem key={index} value={type}>
                       {type}
                     </MenuItem>
@@ -432,14 +551,18 @@ const CalendarView = ({ selectedDate }) => {
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth margin="dense" disabled={!selectedDoctorType || !isEditing}>
+              {/* Doctor Select */}
+              <FormControl
+                fullWidth
+                margin="dense"
+                disabled={!selectedDoctorType || !isEditing} // Disable when no doctor type is selected or not in editing mode
+              >
                 <InputLabel>Doctor's Name</InputLabel>
                 <Select
                   value={selectedDoctor}
                   onChange={(e) => setSelectedDoctor(e.target.value)}
-                  disabled={!isEditing}  // Disable until "Edit" is clicked
                 >
-                  {doctors
+                  {filteredDoctors
                     .filter((doc) => doc.type === selectedDoctorType)
                     .map((doctor, index) => (
                       <MenuItem key={index} value={doctor.name}>
@@ -449,12 +572,16 @@ const CalendarView = ({ selectedDate }) => {
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth margin="dense" disabled={!selectedDoctor || !isEditing}>
+              {/* Time Select */}
+              <FormControl
+                fullWidth
+                margin="dense"
+                disabled={!selectedDoctor || !isEditing} // Disable when no doctor is selected or not in editing mode
+              >
                 <InputLabel>Time Slot</InputLabel>
                 <Select
                   value={selectedTime}
                   onChange={(e) => setSelectedTime(e.target.value)}
-                  disabled={!isEditing}  // Disable until "Edit" is clicked
                 >
                   {availableTimes.length === 0 ? (
                     <MenuItem disabled>No available times</MenuItem>
@@ -463,13 +590,11 @@ const CalendarView = ({ selectedDate }) => {
                       const [hourStr, minuteStr] = time.split(":");
                       const date = new Date();
                       date.setHours(Number(hourStr), Number(minuteStr));
-
                       const formattedTime = date.toLocaleTimeString([], {
                         hour: "numeric",
                         minute: "2-digit",
                         hour12: true,
                       });
-
                       return (
                         <MenuItem key={index} value={time}>
                           {formattedTime}
@@ -479,62 +604,243 @@ const CalendarView = ({ selectedDate }) => {
                   )}
                 </Select>
               </FormControl>
+
+              {/* Edit and Submit Buttons */}
+              {isEditing ? (
+                <>
+                  <Button
+                    variant="contained"
+                    onClick={async () => {
+                      // Logic to submit the edited event as approved again
+                      try {
+                        // You can perform updates to the selectedEvent (e.g., set status to "Approved")
+                        await updateDoc(doc(firestore, "appointments", selectedEvent.id), {
+                          status: "Approved", // Submit as approved after editing
+                          doctor: selectedDoctor,
+                          time: selectedTime,
+                        });
+                        setDialogOpen(false); // Close the dialog after submission
+                      } catch (error) {
+                        console.error("Error submitting the edited appointment:", error);
+                      }
+                    }}
+                  >
+                    Submit Changes
+                  </Button>
+                  <Button onClick={() => setIsEditing(false)}>Cancel Edit</Button>
+                </>
+              ) : (
+                <Button variant="contained" onClick={() => setIsEditing(true)}>
+                  Edit Appointment
+                </Button>
+              )}
             </>
-          ) : (
-            <TextField
-              label="Add Note"
+          )}
+
+      {(!selectedEvent?.status || selectedEvent.status === "Note") && (
+        <>
+          <TextField
+            label={selectedEvent?.id ? "Edit Note" : "Add Note"}
+            fullWidth
+            margin="dense"
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+          />
+          {!selectedEvent && (
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              No events scheduled for this day. You can add a note.
+            </Typography>
+          )}
+        </>
+      )}
+        {selectedEvent?.status === "Vaccine" && (
+          <>
+            <FormControl fullWidth margin="dense">
+              <InputLabel>Select Student</InputLabel>
+              <Select
+                value={selectedUserForVaccine}
+                onChange={(e) => setSelectedUserForVaccine(e.target.value)}
+              >
+                {filteredUsers.map((user) => (
+                  <MenuItem key={user.id} value={user.id}>
+                    {user.name || user.email || user.id}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              Select a student to schedule a vaccine appointment.
+            </Typography>
+          </>
+        )}
+
+        {(selectedEvent?.status === "Pending" || selectedEvent?.status === "Approved") && (
+          <>
+            {/* Appointment Fields */}
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Student ID: {selectedEvent.studentId}
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              Reason: {selectedEvent.note}
+            </Typography>
+
+            {/* Doctor Type Select */}
+            <FormControl fullWidth margin="dense">
+              <InputLabel>Type of Doctor</InputLabel>
+              <Select
+                value={selectedDoctorType}
+                onChange={(e) => {
+                  setSelectedDoctorType(e.target.value);
+                  setSelectedDoctor("");
+                }}
+                disabled={!isEditing && selectedEvent?.status === "Approved"}
+              >
+                {[...new Set(filteredDoctors.map((doc) => doc.type))].map((type, index) => (
+                  <MenuItem key={index} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Doctor Select */}
+            <FormControl
               fullWidth
               margin="dense"
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-            />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-  
-          {selectedEvent?.status === "Pending" && (
-            <>
-              <Button onClick={handleDisapprove} color="error">
-                Disapprove
-              </Button>
-              <Button variant="contained" onClick={handleSubmitApproval}>
-                Approve & Submit
-              </Button>
-            </>
-          )}
-  
-          {selectedEvent?.status === "Approved" && !isEditing && (
-            <>
-              <Button onClick={handleDisapprove} color="error">
-                Disapprove
-              </Button>
-              <Button variant="contained" onClick={() => setIsEditing(true)}>
-                Edit
-              </Button>
-            </>
-          )}
-  
-            {selectedEvent?.status === "Approved" && isEditing && (
-            <>
-              <Button onClick={() => setIsEditing(false)}>Cancel Edit</Button>
-              <Button variant="contained" onClick={handleSubmitApproval}>
-                Save Changes
-              </Button>
-            </>
-          )}
-  
-          {!selectedEvent?.id && (
-            <Button onClick={handleSaveNote} variant="contained">
+              disabled={!selectedDoctorType || (!isEditing && selectedEvent?.status === "Approved")}
+            >
+              <InputLabel>Doctor's Name</InputLabel>
+              <Select
+                value={selectedDoctor}
+                onChange={(e) => setSelectedDoctor(e.target.value)}
+              >
+                {filteredDoctors
+                  .filter((doc) => doc.type === selectedDoctorType)
+                  .map((doctor, index) => (
+                    <MenuItem key={index} value={doctor.name}>
+                      {doctor.name}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+
+            {/* Time Select */}
+            <FormControl
+              fullWidth
+              margin="dense"
+              disabled={!selectedDoctor || (!isEditing && selectedEvent?.status === "Approved")}
+            >
+              <InputLabel>Time Slot</InputLabel>
+              <Select
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+              >
+                {availableTimes.length === 0 ? (
+                  <MenuItem disabled>No available times</MenuItem>
+                ) : (
+                  availableTimes.map((time, index) => {
+                    const [hourStr, minuteStr] = time.split(":");
+                    const date = new Date();
+                    date.setHours(Number(hourStr), Number(minuteStr));
+                    const formattedTime = date.toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    });
+                    return (
+                      <MenuItem key={index} value={time}>
+                        {formattedTime}
+                      </MenuItem>
+                    );
+                  })
+                )}
+              </Select>
+            </FormControl>
+          </>
+        )}
+      </DialogContent>
+
+      <DialogActions>
+        {/* Vaccine Only */}
+        {selectedEvent?.status === "Vaccine" && (
+          <Button
+            variant="contained"
+            onClick={async () => {
+              if (!selectedUserForVaccine) return;
+              const newAppointment = {
+                studentId: selectedUserForVaccine,
+                start: selectedEvent.start,
+                end: selectedEvent.end,
+                status: "Vaccine",
+                note: "Scheduled vaccination",
+                createdAt: new Date(),
+              };
+              try {
+                await addDoc(collection(firestore, "appointments"), newAppointment);
+                setDialogOpen(false);
+                setSelectedUserForVaccine("");
+              } catch (error) {
+                console.error("Error scheduling vaccine:", error);
+              }
+            }}
+          >
+            Submit Vaccine Appointment
+          </Button>
+        )} 
+        {/* Add Note Only */}
+        {!selectedEvent?.status && (
+          <>
+            <Button variant="contained" onClick={handleSaveNote}>
               Save Note
             </Button>
-          )}
-          {selectedEvent?.status === "Note" && (
+          </>
+        )}
+        {/* Note Only */}
+        {selectedEvent?.status === "Note" && (
+          <>
             <Button onClick={handleDeleteNote} color="error">
               Delete Note
             </Button>
-          )}
-        </DialogActions>
+            <Button variant="contained" onClick={handleSaveNote}>
+              Save Note
+            </Button>
+          </>
+        )}
+
+        {/* Appointment Buttons */}
+        {selectedEvent?.status === "Pending" && (
+          <>
+            <Button onClick={handleDisapprove} color="error">
+              Disapprove
+            </Button>
+            <Button variant="contained" onClick={handleSubmitApproval}>
+              Approve & Submit
+            </Button>
+          </>
+        )}
+
+        {selectedEvent?.status === "Approved" && !isEditing && (
+          <>
+            <Button onClick={handleDisapprove} color="error">
+              Disapprove
+            </Button>
+            <Button variant="contained" onClick={() => setIsEditing(true)}>
+              Edit
+            </Button>
+          </>
+        )}
+
+        {selectedEvent?.status === "Approved" && isEditing && (
+          <>
+            <Button onClick={handleSubmitApproval} variant="contained">
+              Save Changes
+            </Button>
+            <Button onClick={() => setIsEditing(false)}>Cancel Edit</Button>
+          </>
+        )}
+
+        <Button onClick={() => setDialogOpen(false)}>Close</Button>
+      </DialogActions>
       </Dialog>
     </Box>
   );

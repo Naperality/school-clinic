@@ -444,21 +444,33 @@ const StudentDashboard = () => {
                             ? "#fbc02d"
                             : appt.status === "Approved"
                             ? "#2e7d32"
-                            : "#d32f2f"
+                            : appt.status === "Vaccine"
+                            ? "#f8bbd0" // Light pink color for "Vaccine"
+                            : "#d32f2f" // Default red for other statuses
                         }`,
                       }}
                     >
                       <Typography variant="subtitle1" gutterBottom>
-                        <strong>Date:</strong> {new Date(appt.date.seconds * 1000).toDateString()}
+                        <strong>Date:</strong>{" "}
+                        {appt.start
+                          ? new Date(appt.start.seconds * 1000).toDateString() // Use start date if available
+                          : "No date available"}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Time Preference:</strong> {appt.timePreference}
+                        <strong>Time Preference:</strong>{" "}
+                        {appt.timePreference && appt.timePreference !== "none" // Check if timePreference is not "none"
+                          ? appt.timePreference
+                          : "None"}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Reason:</strong> {appt.reason}
+                        <strong>Reason:</strong>{" "}
+                        {appt.reason && appt.reason !== "none" // Check if reason is not "none"
+                          ? appt.reason
+                          : appt.status} 
                       </Typography>
                       <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                        <strong>Status:</strong> {appt.status}
+                      <strong>Status:</strong>{" "}
+                        {appt.status === "Vaccine" ? appt.note : appt.status} 
                       </Typography>
                       <Typography variant="caption" color="textSecondary">
                         Requested on: {new Date(appt.createdAt.seconds * 1000).toLocaleString()}

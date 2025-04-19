@@ -170,6 +170,7 @@ const StudentDashboard = () => {
       reason: complaints,
       status: "Pending",
       studentId: uid,
+      studentName: userInfo?.name || "", // 🟡 Add user's name here
       createdAt: new Date(),
     };
   
@@ -446,15 +447,23 @@ const StudentDashboard = () => {
                             ? "#2e7d32"
                             : appt.status === "Vaccine"
                             ? "#f8bbd0" // Light pink color for "Vaccine"
-                            : "#d32f2f" // Default red for other statuses
+                            : appt.status === "Awaiting Confirmation"
+                            ? "#ffe0b2" // Light pink color for "Vaccine"
+                            : "#d32f2f" // Default red for other statuses 
                         }`,
                       }}
                     >
                       <Typography variant="subtitle1" gutterBottom>
                         <strong>Date:</strong>{" "}
-                        {appt.start
-                          ? new Date(appt.start.seconds * 1000).toDateString() // Use start date if available
-                          : "No date available"}
+                        {
+                          appt.start
+                            ? new Date(appt.start.seconds * 1000).toDateString() // Use start date if available
+                            : appt.confirmedTime
+                            ? new Date(appt.confirmedTime.seconds * 1000).toDateString() // Use confirmedTime if available
+                            : appt.createdAt
+                            ? new Date(appt.createdAt.seconds * 1000).toDateString() // Use createdAt if available
+                            : "No date available"
+                        }
                       </Typography>
                       <Typography variant="body2">
                         <strong>Time Preference:</strong>{" "}

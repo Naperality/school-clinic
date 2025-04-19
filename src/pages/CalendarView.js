@@ -83,7 +83,8 @@ const CalendarView = ({ selectedDate }) => {
       const pendingList = [];
       const approvedList = [];
       const disapprovedList = [];
-  
+      const awaitingList = [];
+
       const now = new Date();
   
       snapshot.forEach((docSnap) => {
@@ -132,7 +133,7 @@ const CalendarView = ({ selectedDate }) => {
           color: status === "Done" ? "blue" : undefined,
         };
   
-        // Categorize
+        // Categorize 
         if (status === "Pending") {
           pendingList.push(event);
         } else if (status === "Approved") {
@@ -141,6 +142,8 @@ const CalendarView = ({ selectedDate }) => {
           disapprovedList.push(event);
         } else if (status === "Done") {
           approvedList.push(event); // Or move to a separate "doneList" if you want to split
+        }else if (status === "Awaiting Confirmation") {
+          awaitingList.push(event); // event for awaiting
         }
       });
   
@@ -150,6 +153,7 @@ const CalendarView = ({ selectedDate }) => {
         ...pendingList,
         ...approvedList,
         ...disapprovedList,
+        ...awaitingList,
       ]);
   
       setApprovedAppointments(approvedList); // Could rename to something like `upcomingAndDone`
@@ -382,7 +386,7 @@ const CalendarView = ({ selectedDate }) => {
     updatedTime.setHours(hours, minutes);
 
     await updateDoc(doc(db, "appointments", selectedEvent.id), {
-      status: "Approved",
+      status: "Awaiting Confirmation",
       confirmedTime: updatedTime,
       doctor: selectedDoctor,
       note: newNote || selectedEvent.note,
@@ -393,7 +397,7 @@ const CalendarView = ({ selectedDate }) => {
         event.id === selectedEvent.id
           ? {
               ...event,
-              status: "Approved",
+              status: "Awaiting Confirmation",
               confirmedTime: updatedTime,
               doctor: selectedDoctor,
               note: newNote || selectedEvent.note,
@@ -478,18 +482,23 @@ const CalendarView = ({ selectedDate }) => {
         onNavigate={setCurrentDate}
         style={{
           height: "100%",
-          backgroundColor: "#fff",
+          maxWidth: "80vw", // Adjust to fit your layout (e.g., 100%, 80vw, or px)
+          margin: "0 auto", // Center the calendar
+          backgroundColor: "#fff", // Keep light background
           padding: "10px",
           borderRadius: "12px",
+          color: "#000", // Force default text to black
+          border: "1px solid #ccc", // Light border
         }}
         eventPropGetter={(event) => {
           let backgroundColor = "";
-          let textColor = "black";
+          let textColor = "black"; //Awaiting Confirmation
   
           if (event.status === "Pending") backgroundColor = "#FFEB3B";
           else if (event.status === "Done") backgroundColor = "#4a90e2";
           else if (event.status === "Vaccine") backgroundColor = "#f8c8d1";
           else if (event.status === "Approved") backgroundColor = "#4CAF50";
+          else if (event.status === "Awaiting Confirmation") backgroundColor = "#ffe0b2";
           else if (event.status === "Disapproved") {
             backgroundColor = "#f44336";
             textColor = "#fff";
@@ -513,11 +522,21 @@ const CalendarView = ({ selectedDate }) => {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
       <DialogTitle>
                   {
-                    selectedEvent?.status === "Note" || !selectedEvent
+                    selectedEvent?.status === "Note" || !selectedEvent 
                       ? "Note"
                       : selectedEvent?.status === "Vaccine"
                       ? "Manage Vaccine"
-                      : "Manage Appointment"
+                      : selectedEvent?.status === "Disapproved"
+                      ? "Manage Disapproved Appointment"
+                      : selectedEvent?.status === "Done"
+                      ? "Nothing to Change Here :)"
+                      : selectedEvent?.status === "Approved"
+                      ? "Manage Approved Appointment"
+                      : selectedEvent?.status === "Pending"
+                      ? "Manage Pending Appointment"
+                      : selectedEvent?.status === "Awaiting Confirmation"
+                      ? "Awaiting Confirmation Appointment"
+                      : "Add Note"
                   }
                 </DialogTitle>
                 <DialogContent>
@@ -615,7 +634,7 @@ const CalendarView = ({ selectedDate }) => {
                       try {
                         // You can perform updates to the selectedEvent (e.g., set status to "Approved")
                         await updateDoc(doc(firestore, "appointments", selectedEvent.id), {
-                          status: "Approved", // Submit as approved after editing
+                          status: "Awaiting Confirmation", // Submit as awaiting confirmation after editing
                           doctor: selectedDoctor,
                           time: selectedTime,
                         });
@@ -674,7 +693,7 @@ const CalendarView = ({ selectedDate }) => {
           </>
         )}
 
-        {(selectedEvent?.status === "Pending" || selectedEvent?.status === "Approved") && (
+        {(selectedEvent?.status === "Pending" || (selectedEvent?.status === "Approved" || selectedEvent?.status === "Awaiting Confirmation")) && (
           <>
             {/* Appointment Fields */}
             <Typography variant="body2" sx={{ mb: 1 }}>
@@ -693,7 +712,7 @@ const CalendarView = ({ selectedDate }) => {
                   setSelectedDoctorType(e.target.value);
                   setSelectedDoctor("");
                 }}
-                disabled={!isEditing && selectedEvent?.status === "Approved"}
+                disabled={!isEditing && (selectedEvent?.status === "Approved" || selectedEvent?.status === "Awaiting Confirmation")}
               >
                 {[...new Set(filteredDoctors.map((doc) => doc.type))].map((type, index) => (
                   <MenuItem key={index} value={type}>
@@ -707,7 +726,7 @@ const CalendarView = ({ selectedDate }) => {
             <FormControl
               fullWidth
               margin="dense"
-              disabled={!selectedDoctorType || (!isEditing && selectedEvent?.status === "Approved")}
+              disabled={!selectedDoctorType || (!isEditing && (selectedEvent?.status === "Approved" || selectedEvent?.status === "Awaiting Confirmation"))}
             >
               <InputLabel>Doctor's Name</InputLabel>
               <Select
@@ -728,7 +747,7 @@ const CalendarView = ({ selectedDate }) => {
             <FormControl
               fullWidth
               margin="dense"
-              disabled={!selectedDoctor || (!isEditing && selectedEvent?.status === "Approved")}
+              disabled={!selectedDoctor || (!isEditing && (selectedEvent?.status === "Approved" || selectedEvent?.status === "Awaiting Confirmation"))}
             >
               <InputLabel>Time Slot</InputLabel>
               <Select
@@ -819,7 +838,7 @@ const CalendarView = ({ selectedDate }) => {
           </>
         )}
 
-        {selectedEvent?.status === "Approved" && !isEditing && (
+        {(selectedEvent?.status === "Approved" || selectedEvent?.status === "Awaiting Confirmation") && !isEditing &&(
           <>
             <Button onClick={handleDisapprove} color="error">
               Disapprove
@@ -830,7 +849,7 @@ const CalendarView = ({ selectedDate }) => {
           </>
         )}
 
-        {selectedEvent?.status === "Approved" && isEditing && (
+        {(selectedEvent?.status === "Approved" || selectedEvent?.status === "Awaiting Confirmation") && isEditing && (
           <>
             <Button onClick={handleSubmitApproval} variant="contained">
               Save Changes

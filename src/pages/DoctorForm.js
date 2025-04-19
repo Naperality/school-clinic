@@ -15,10 +15,11 @@ import {
 } from "@mui/material";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 
 const timeSlots = [
-  "08:30", "09:30", "10:30", "11:30", "12:30",  // Morning times
-  "13:30", "14:30", "15:30", "16:30", "17:30"   // Afternoon times
+  "08:00", "09:00", "10:00", "11:00", "12:00",  // Morning times
+  "13:00", "14:00", "15:00", "16:00", "17:00"   // Afternoon times
 ];
 
 const doctorTypes = [
@@ -84,103 +85,172 @@ const DoctorForm = () => {
   const afternoonTimes = timeSlots.slice(5);
 
   return (
-    <Box sx={{ maxWidth: 500, mx: "auto", mt: 4, p: 2, backgroundColor: "#f9f9f9", borderRadius: 2 }}>
-      <Typography variant="h6" gutterBottom>
+    <Box sx={{
+      maxWidth: 800,
+      mx: "auto",
+      mt: 4,
+      p: 5,
+      backgroundColor: "rgba(44, 62, 80, 0.8)", // more transparent than 0.9
+      borderRadius: 3,
+      boxShadow: 2
+    }}>    
+      {/* Doctor's Information Section */}
+      <Typography
+        variant="h5"
+        gutterBottom
+        sx={{ color: "#ecf0f1", mb: 1, display: 'flex', alignItems: 'center', fontWeight: 600 }}
+      >
+       <span style={{ fontSize: '1.2rem', marginRight: 8 }}>
+          <AddCircleIcon sx={{ color: 'linear-gradient(45deg, #ff6b6b, #f06595, #f0a500)', fontSize: '1.5rem' }} />
+        </span>
         Add Doctor or Dentist
       </Typography>
-
-      <FormControl fullWidth margin="normal">
-        <InputLabel>Type of Doctor</InputLabel>
-        <Select
-          value={doctorType}
-          onChange={(e) => setDoctorType(e.target.value)}
-        >
-          {doctorTypes.map((type, index) => (
-            <MenuItem key={index} value={type}>
-              {type}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      <TextField
-        label="Doctor's Name"
-        fullWidth
-        margin="normal"
-        value={doctorName}
-        onChange={(e) => setDoctorName(e.target.value)}
-      />
-
-      <FormGroup>
-        <Typography variant="subtitle1" sx={{ mt: 2 }}>
-          Available Days
-        </Typography>
-        {daysOfWeek.map((day, index) => (
-          <FormControlLabel
-            key={index}
-            control={
-              <Checkbox
-                checked={selectedDays.includes(day)}
-                onChange={() => handleDayChange(day)}
-              />
-            }
-            label={day}
+  
+      <Grid container spacing={2}>
+        {/* First Section - Doctor's Info */}
+        <Grid item xs={12} md={6}>
+          <Typography variant="subtitle1" sx={{ color: "#ecf0f1", mb: 1 }}>
+            Doctor's Information
+          </Typography>
+  
+          <FormControl fullWidth margin="normal">
+          <InputLabel sx={{ color: "#ecf0f1", '&.Mui-focused': { color: '#1abc9c' } }}>
+            Type of Doctor
+          </InputLabel>
+          <Select
+            value={doctorType}
+            onChange={(e) => setDoctorType(e.target.value)}
+            sx={{
+              backgroundColor: "#34495e",
+              color: "#ecf0f1",
+              '& .MuiSelect-icon': { color: '#ecf0f1' },
+              '&:hover': {
+                backgroundColor: '#2c3e50',
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#1abc9c',
+              },
+              '&.Mui-focused': {
+                backgroundColor: '#2c3e50',
+                borderColor: '#1abc9c',
+              }
+            }}
+          >
+            {doctorTypes.map((type, index) => (
+              <MenuItem key={index} value={type}>{type}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+  
+          <TextField
+            label="Doctor's Name"
+            fullWidth
+            margin="normal"
+            value={doctorName}
+            onChange={(e) => setDoctorName(e.target.value)}
+            sx={{
+              '& .MuiInputLabel-root': { color: '#bdc3c7' }, // label color
+              '& .MuiInputLabel-root.Mui-focused': { color: '#1abc9c' }, // focused label
+              '& .MuiOutlinedInput-root': {
+                color: '#ecf0f1', // input text color
+                backgroundColor: "#34495e",
+                '& fieldset': { borderColor: '#7f8c8d' },
+                '&:hover fieldset': { borderColor: '#ecf0f1' },
+                '&.Mui-focused fieldset': { borderColor: '#1abc9c' }
+              }
+            }}
           />
-        ))}
-      </FormGroup>
+        </Grid>
+  
+        {/* Second Section - Available Days */}
+        <Grid item xs={12} md={6}>
+          <Typography variant="subtitle1" sx={{ color: "#ecf0f1", mb: 1 }}>
+            Available Days
+          </Typography>
+          {daysOfWeek.map((day, index) => (
+            <FormControlLabel
+              key={index}
+              control={
+                <Checkbox
+                  checked={selectedDays.includes(day)}
+                  onChange={() => handleDayChange(day)}
+                  sx={{ color: "#ecf0f1", '&.Mui-checked': { color: "#1abc9c" } }}
+                />
+              }
+              label={<Typography sx={{ color: "#ecf0f1" }}>{day}</Typography>}
+            />
+          ))}
+        </Grid>
+  
+        {/* Third Section - Available Times */}
+        <Grid item xs={12} md={12}>
+          <Typography variant="subtitle1" sx={{ color: "#ecf0f1", mb: 1 }}>
+            Available Times
+          </Typography>
+          <Grid container spacing={2}>
+            {/* Morning Times */}
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" sx={{ mb: 1, color: "#ecf0f1" }}>Morning</Typography>
+              {morningTimes.map((time, index) => (
+                <FormControlLabel
+                  key={index}
+                  control={
+                    <Checkbox
+                      checked={selectedTimes.includes(time)}
+                      onChange={() => handleTimeChange(time)}
+                      sx={{ color: "#ecf0f1", '&.Mui-checked': { color: "#1abc9c" } }}
+                    />
+                  }
+                  label={
+                    <Typography sx={{ color: "#ecf0f1" }}>
+                      {`${formatTime(time)} - ${formatTime(addOneHour(time))}`}
+                    </Typography>
+                  }
+                />
+              ))}
+            </Grid>
 
-      <FormGroup>
-        <Typography variant="subtitle1" sx={{ mt: 2 }}>
-          Available Times
-        </Typography>
-        <Grid container spacing={2}>
-          {/* Morning Times */}
-          <Grid item xs={6}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>Morning</Typography>
-            {morningTimes.map((time, index) => (
-              <FormControlLabel
-                key={index}
-                control={
-                  <Checkbox
-                    checked={selectedTimes.includes(time)}
-                    onChange={() => handleTimeChange(time)}
-                  />
-                }
-                label={`${formatTime(time)} - ${formatTime(addOneHour(time))}`}
-              />
-            ))}
-          </Grid>
-
-          {/* Afternoon Times */}
-          <Grid item xs={6}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>Afternoon</Typography>
-            {afternoonTimes.map((time, index) => (
-              <FormControlLabel
-                key={index}
-                control={
-                  <Checkbox
-                    checked={selectedTimes.includes(time)}
-                    onChange={() => handleTimeChange(time)}
-                  />
-                }
-                label={`${formatTime(time)} - ${formatTime(addOneHour(time))}`}
-              />
-            ))}
+            {/* Afternoon Times */}
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" sx={{ mb: 1, color: "#ecf0f1" }}>Afternoon</Typography>
+              {afternoonTimes.map((time, index) => (
+                <FormControlLabel
+                  key={index}
+                  control={
+                    <Checkbox
+                      checked={selectedTimes.includes(time)}
+                      onChange={() => handleTimeChange(time)}
+                      sx={{ color: "#ecf0f1", '&.Mui-checked': { color: "#1abc9c" } }}
+                    />
+                  }
+                  label={
+                    <Typography sx={{ color: "#ecf0f1" }}>
+                      {`${formatTime(time)} - ${formatTime(addOneHour(time))}`}
+                    </Typography>
+                  }
+                />
+              ))}
+            </Grid>
           </Grid>
         </Grid>
-      </FormGroup>
-
+      </Grid>
+  
       <Button
         variant="contained"
         color="primary"
-        sx={{ mt: 2 }}
-        fullWidth
+        sx={{
+          mt: 2, 
+          width: "100%", 
+          padding: "12px 0", 
+          backgroundColor: "#1abc9c", 
+          '&:hover': { backgroundColor: "#16a085" },
+        }}
         onClick={handleSubmit}
       >
         Add Doctor
       </Button>
     </Box>
-  );
+  );  
 };
 
 // Function to add one hour to the time

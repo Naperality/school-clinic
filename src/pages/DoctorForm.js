@@ -16,6 +16,9 @@ import {
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase"; // Make sure auth is exported from your firebase.js
+
 
 const timeSlots = [
   "08:00", "09:00", "10:00", "11:00", "12:00",  // Morning times
@@ -37,6 +40,10 @@ const DoctorForm = () => {
   const [selectedTimes, setSelectedTimes] = useState([]);
   const [selectedDays, setSelectedDays] = useState([]);
 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+
   const handleTimeChange = (time) => {
     setSelectedTimes((prev) =>
       prev.includes(time)
@@ -54,31 +61,41 @@ const DoctorForm = () => {
   };
 
   const handleSubmit = async () => {
-    if (!doctorType || !doctorName || selectedTimes.length === 0 || selectedDays.length === 0) {
+    if (!doctorType || !doctorName || !email || !password || selectedTimes.length === 0 || selectedDays.length === 0) {
       alert("Please fill in all fields and select at least one time and one day.");
       return;
     }
-
+  
     try {
+      // 1. Create Auth user first
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+  
+      // 2. Save doctor info to Firestore
       await addDoc(collection(db, "doctors"), {
+        uid: user.uid,  // Store the user UID as well
         type: doctorType,
         name: doctorName,
+        email: email,
         availableTimes: selectedTimes,
-        availableDays: selectedDays,  // Added days to the Firestore document
+        availableDays: selectedDays,
       });
-
-      // Clear form
+  
+      // 3. Clear form
       setDoctorType("");
       setDoctorName("");
       setSelectedTimes([]);
       setSelectedDays([]);
-
+      setEmail("");
+      setPassword("");
+  
       alert("Doctor added successfully!");
     } catch (error) {
       console.error("Error adding doctor: ", error);
-      alert("Error adding doctor.");
+      alert(`Error: ${error.message}`);
     }
   };
+  
 
   // Separate the time slots into morning and afternoon
   const morningTimes = timeSlots.slice(0, 5);
@@ -108,59 +125,123 @@ const DoctorForm = () => {
   
       <Grid container spacing={2}>
         {/* First Section - Doctor's Info */}
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle1" sx={{ color: "#ecf0f1", mb: 1 }}>
-            Doctor's Information
-          </Typography>
-  
-          <FormControl fullWidth margin="normal">
-          <InputLabel sx={{ color: "#ecf0f1", '&.Mui-focused': { color: '#1abc9c' } }}>
-            Type of Doctor
-          </InputLabel>
-          <Select
-            value={doctorType}
-            onChange={(e) => setDoctorType(e.target.value)}
-            sx={{
-              backgroundColor: "#34495e",
-              color: "#ecf0f1",
-              '& .MuiSelect-icon': { color: '#ecf0f1' },
-              '&:hover': {
-                backgroundColor: '#2c3e50',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#1abc9c',
-              },
-              '&.Mui-focused': {
-                backgroundColor: '#2c3e50',
-                borderColor: '#1abc9c',
-              }
-            }}
-          >
-            {doctorTypes.map((type, index) => (
-              <MenuItem key={index} value={type}>{type}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-  
-          <TextField
-            label="Doctor's Name"
-            fullWidth
-            margin="normal"
-            value={doctorName}
-            onChange={(e) => setDoctorName(e.target.value)}
-            sx={{
-              '& .MuiInputLabel-root': { color: '#bdc3c7' }, // label color
-              '& .MuiInputLabel-root.Mui-focused': { color: '#1abc9c' }, // focused label
-              '& .MuiOutlinedInput-root': {
-                color: '#ecf0f1', // input text color
-                backgroundColor: "#34495e",
-                '& fieldset': { borderColor: '#7f8c8d' },
-                '&:hover fieldset': { borderColor: '#ecf0f1' },
-                '&.Mui-focused fieldset': { borderColor: '#1abc9c' }
-              }
-            }}
-          />
+        <Grid item xs={12} md={12}>
+        <Typography variant="subtitle1" sx={{ color: "#ecf0f1", mb: 1 }}>
+          Doctor's Information
+        </Typography>
+
+        <Grid container spacing={2}>
+          {/* Type of Doctor */}
+          <Grid item xs={12} sm={6}>
+          <FormControl fullWidth>
+            <InputLabel sx={{ color: "#ecf0f1", '&.Mui-focused': { color: '#1abc9c' } }}>
+              Type of Doctor
+            </InputLabel>
+            <Select
+              value={doctorType}
+              onChange={(e) => setDoctorType(e.target.value)}
+              sx={{
+                backgroundColor: "#34495e", // Darker background
+                color: "#ecf0f1",            // Light text color
+                '& .MuiSelect-icon': { color: '#ecf0f1' }, // Icon color
+                '&:hover': {
+                  backgroundColor: '#2c3e50', // Slightly lighter on hover
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1abc9c',    // Focus border color
+                },
+                '&.Mui-focused': {
+                  backgroundColor: '#2c3e50', // Lighter background on focus
+                  borderColor: '#1abc9c',
+                },
+                '& .MuiOutlinedInput-root': {
+                  borderColor: '#7f8c8d',    // Border color
+                  '&:hover fieldset': { borderColor: '#ecf0f1' },  // Border color when hovered
+                  '&.Mui-focused fieldset': { borderColor: '#1abc9c' }, // Border color on focus
+                },
+                '& .MuiInputLabel-root': {
+                  color: '#bdc3c7',  // Label color
+                },
+                minWidth: '250px', // Ensure the Select field is the same width as other fields
+              }}
+            >
+              {/* Placeholder item */}
+              <MenuItem value="" disabled selected>
+                Select Doctor Type
+              </MenuItem>
+
+              {doctorTypes.map((type, index) => (
+                <MenuItem key={index} value={type}>{type}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          </Grid>
+
+          {/* Email */}
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Email"
+              fullWidth
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              sx={{
+                '& .MuiInputLabel-root': { color: '#bdc3c7' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#1abc9c' },
+                '& .MuiOutlinedInput-root': {
+                  color: '#ecf0f1',
+                  backgroundColor: "#34495e",
+                  '& fieldset': { borderColor: '#7f8c8d' },
+                  '&:hover fieldset': { borderColor: '#ecf0f1' },
+                  '&.Mui-focused fieldset': { borderColor: '#1abc9c' }
+                }
+              }}
+            />
+          </Grid>
+
+          {/* Doctor's Name */}
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Doctor's Name"
+              fullWidth
+              value={doctorName}
+              onChange={(e) => setDoctorName(e.target.value)}
+              sx={{
+                '& .MuiInputLabel-root': { color: '#bdc3c7' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#1abc9c' },
+                '& .MuiOutlinedInput-root': {
+                  color: '#ecf0f1',
+                  backgroundColor: "#34495e",
+                  '& fieldset': { borderColor: '#7f8c8d' },
+                  '&:hover fieldset': { borderColor: '#ecf0f1' },
+                  '&.Mui-focused fieldset': { borderColor: '#1abc9c' }
+                }
+              }}
+            />
+          </Grid>
+
+          {/* Password */}
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Password"
+              type="password"
+              fullWidth
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              sx={{
+                '& .MuiInputLabel-root': { color: '#bdc3c7' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#1abc9c' },
+                '& .MuiOutlinedInput-root': {
+                  color: '#ecf0f1',
+                  backgroundColor: "#34495e",
+                  '& fieldset': { borderColor: '#7f8c8d' },
+                  '&:hover fieldset': { borderColor: '#ecf0f1' },
+                  '&.Mui-focused fieldset': { borderColor: '#1abc9c' }
+                }
+              }}
+            />
+          </Grid>
         </Grid>
+      </Grid>
   
         {/* Second Section - Available Days */}
         <Grid item xs={12} md={6}>

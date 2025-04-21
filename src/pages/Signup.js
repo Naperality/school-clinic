@@ -5,11 +5,12 @@ import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import AuthFormWrapper from "../components/AuthFormWrapper";
 import { motion } from "framer-motion";
+import { FaArrowLeft } from "react-icons/fa";
+import styles from "./Signup.module.css";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student");
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [birthDate, setBirthDate] = useState("");
@@ -21,10 +22,9 @@ const Signup = () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      console.log("User Created:", user);
 
-      // Set default profile picture URL or leave it blank
-      const profilePictureUrl = "https://www.example.com/default-avatar.png"; // Placeholder image URL
+      const role = "Student";
+      const profilePictureUrl = "https://www.example.com/default-avatar.png";
 
       const userData = {
         email,
@@ -32,13 +32,10 @@ const Signup = () => {
         name,
         age,
         birthDate,
-        profilePictureUrl, // Using the default avatar URL
+        profilePictureUrl,
       };
-      console.log("Data to save:", userData);  // Check the data you're saving
 
       await setDoc(doc(db, "users", user.uid), userData);
-      console.log("Data successfully saved to Firestore!");
-
       navigate("/dashboard");
     } catch (error) {
       console.error("Error during signup:", error);
@@ -48,21 +45,25 @@ const Signup = () => {
 
   return (
     <AuthFormWrapper>
+      <div className={styles.backBtnContainer} onClick={() => navigate(-1)}>
+        <FaArrowLeft size={24} color="#1abc9c" />
+      </div>
+
       <motion.div
         initial={{ x: 300, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: -300, opacity: 0 }}
         transition={{ duration: 0.5 }}
-        className="auth-form"
+        className={styles.authForm}
       >
-        <h2 className="form-title">Sign Up</h2>
-        <form onSubmit={handleSignup} className="form-content">
+        <h2 className={styles.formTitle}>Sign Up</h2>
+        <form onSubmit={handleSignup} className={styles.formContent}>
           <input
             type="text"
             placeholder="Full Name"
             onChange={(e) => setName(e.target.value)}
             required
-            className="form-input"
+            className={styles.formInput}
           />
           <input
             type="number"
@@ -70,44 +71,36 @@ const Signup = () => {
             value={age}
             onChange={(e) => {
               const val = e.target.value;
-              // Only allow whole numbers between 1 and 120
               if (/^\d{0,3}$/.test(val) && +val >= 0 && +val <= 120) {
                 setAge(val);
               }
             }}
             required
-            className="form-input"
+            className={styles.formInput}
           />
           <input
             type="date"
             placeholder="Birth Date"
             onChange={(e) => setBirthDate(e.target.value)}
             required
-            className="form-input"
+            className={styles.formInput}
           />
           <input
             type="email"
             placeholder="Email"
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="form-input"
+            className={styles.formInput}
           />
           <input
             type="password"
             placeholder="Password"
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="form-input"
+            className={styles.formInput}
           />
-          <select
-            onChange={(e) => setRole(e.target.value)}
-            value={role}
-            className="form-select"
-          >
-            <option value="student">Student</option>
-            <option value="staff">Staff</option>
-          </select>
-          <button type="submit" className="form-button">
+
+          <button type="submit" className={styles.formButton}>
             Sign Up
           </button>
         </form>

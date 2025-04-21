@@ -226,7 +226,7 @@ const StaffDashboard = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div">
-            Admin Dashboard
+            Manager Dashboard
           </Typography>
           {/* Spacer to push the next icon to the right */}
           <Box sx={{ flexGrow: 1 }} />
@@ -362,7 +362,7 @@ const StaffDashboard = () => {
         >
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-              Welcome back, Admin 👋
+              Welcome back, Manager 👋
             </Typography>
           </Box>
 

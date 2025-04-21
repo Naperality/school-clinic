@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../firebase";
 import './StudentDashboard.css';
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { collection, getDocs } from "firebase/firestore";
 import { Person as PersonIcon, CalendarToday as CalendarIcon, ListAlt as AppointmentsIcon, ExitToApp as LogoutIcon } from "@mui/icons-material";
 import {
@@ -27,12 +27,24 @@ import {
   TextField,
   CircularProgress,
   Grid,
+  Badge, 
+  Menu, 
+  MenuItem, 
+  Tooltip,
 } from "@mui/material";
 import { Menu as MenuIcon } from "@mui/icons-material";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import { onAuthStateChanged } from "firebase/auth";
 
 const StudentDashboard = () => {
+
+  const [notifications, setNotifications] = useState([]);  // Holds the list of notifications (pending appointments)
+  const [unreadCount, setUnreadCount] = useState(0);        // Keeps track of unread notifications (pending appointments)
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [currentUid, setCurrentUid] = useState(null);
+
   const [timePreference, setTimePreference] = useState("");
   const [appointments, setAppointments] = useState([]);
   const navigate = useNavigate();
@@ -60,8 +72,53 @@ const StudentDashboard = () => {
 
   const handleDrawerToggle = () => setOpen(!open);
 
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUid(user.uid);
+      } else {
+        setCurrentUid(null);
+      }
+    });
+  
+    return () => unsubscribeAuth(); // Clean up the listener
+  }, []);
+
   const handleLogout = () => {
     signOut(auth).then(() => navigate("/login"));
+  };
+
+    useEffect(() => {
+    if (!currentUid) return;
+
+    const unsubscribeAppointments = onSnapshot(
+      collection(db, "appointments"),
+      (snapshot) => {
+        const pending = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(appointment =>
+            (appointment.status === "Awaiting Confirmation" || appointment.status === "Approved") &&
+            appointment.studentId === currentUid
+          );
+
+        setNotifications(pending);
+        setUnreadCount(pending.length);
+      }
+    );
+
+    return () => unsubscribeAppointments();
+  }, [currentUid]);
+  
+  const handleNotificationClick = (event) => {
+    setAnchorEl(event.currentTarget);  // Open the notification menu
+  };
+  
+  const handleNotificationClose = () => {
+    setAnchorEl(null);  // Close the notification menu
+  };
+  const handleAppointmentSelect = (appointment) => {
+    setAnchorEl(null);
+    setView("appointments") // Automatically switch to appointment view
   };
 
   const fetchUserInfo = async () => {
@@ -242,6 +299,22 @@ const StudentDashboard = () => {
           <Typography variant="h6" noWrap>
             Student Dashboard
           </Typography>
+          {/* Spacer to push the next icon to the right */}
+          <Box sx={{ flexGrow: 1 }} />
+
+          <Tooltip title="Notifications" arrow>
+            <IconButton
+              color="inherit"
+              onClick={handleNotificationClick}
+              aria-label="View notifications"
+              aria-haspopup="true"
+              aria-controls="notification-menu"
+            >
+              <Badge badgeContent={unreadCount} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
 
@@ -322,6 +395,25 @@ const StudentDashboard = () => {
 
       <Box component="main" sx={{ flexGrow: 1, p: 3, bgcolor: "#f4f6f8", height: "100vh", marginLeft: 1 }}>
         <Toolbar />
+        <Menu
+          id="notification-menu"
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleNotificationClose}
+          MenuListProps={{
+            'aria-labelledby': 'notification-button',
+          }}
+        >
+          {notifications.length > 0 ? (
+            notifications.map((appointment, index) => (
+              <MenuItem key={index} onClick={() => handleAppointmentSelect(appointment)}>
+                {appointment.date?.toDate().toLocaleDateString()} at {appointment.timePreference} — {appointment.reason || "No reason"}
+              </MenuItem>
+            ))
+          ) : (
+            <MenuItem>No new requests</MenuItem>
+          )}
+        </Menu>
 
         {view === "calendar" && (
           <Box>

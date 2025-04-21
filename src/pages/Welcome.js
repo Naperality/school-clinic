@@ -3,7 +3,8 @@ import React from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
-import "./Welcome.css";
+import { FaClinicMedical } from "react-icons/fa";
+import styles from "./Welcome.module.css";
 
 const Welcome = () => {
   const { currentUser, userRole, loading } = useAuth();
@@ -14,34 +15,50 @@ const Welcome = () => {
   }
 
   return (
-    <div className="welcome-container">
+    <div className={styles.welcomeContainer}>
+      <div className={styles.floatingShapes} />
+
       <motion.div
-        className="welcome-content"
+        className={styles.welcomeContent}
         initial={{ opacity: 0, scale: 0.8, y: 100 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, y: -100 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        <h1>Welcome to the School Clinic Management System</h1>
-        <p>Please choose an option to continue:</p>
-        <div className="welcome-buttons">
+        <motion.div
+          initial={{ rotate: -20, scale: 0.8 }}
+          animate={{ rotate: 0, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          className={styles.welcomeIcon}
+        >
+          <FaClinicMedical />
+        </motion.div>
+
+        <h1 className={styles.welcomeTitle}>
+          Welcome to Your <span className={styles.noWrap}>Health Space</span>
+        </h1>
+        <p className={styles.welcomeSubtext}>
+          Empowering student wellness — one appointment at a time.
+        </p>
+
+        <div className={styles.welcomeButtons}>
           <Link to="/login">
             <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="welcome-btn"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={styles.welcomeBtn}
             >
-            Log In
-          </motion.button>
+              Log In
+            </motion.button>
           </Link>
           <Link to="/signup">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="welcome-btn"
-          >
-            Sign Up
-          </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={styles.welcomeBtn}
+            >
+              Sign Up
+            </motion.button>
           </Link>
         </div>
       </motion.div>

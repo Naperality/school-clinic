@@ -10,6 +10,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import Dashboard from "./pages/Dashboard";
 import PrivateRoute from "./components/PrivateRoute";
 import { AuthProvider } from "./context/AuthContext";
+import DoctorsDashboard from "./pages/DoctorsDashboard";
 
 
 const AnimatedRoutes = () => {
@@ -22,6 +23,7 @@ const AnimatedRoutes = () => {
         <Route path="/login" element={<LoginRedirect />} />
         <Route path="/signup" element={<SignupRedirect />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/doctor-dashboard" element={<DoctorsDashboard />} />
         <Route
           path="/staff"
           element={

@@ -531,7 +531,7 @@ const CalendarView = ({ selectedDate }) => {
                       : selectedEvent?.status === "Done"
                       ? "Nothing to Change Here :)"
                       : selectedEvent?.status === "Approved"
-                      ? "Manage Approved Appointment"
+                      ? "Appointment Already Approved"
                       : selectedEvent?.status === "Pending"
                       ? "Manage Pending Appointment"
                       : selectedEvent?.status === "Awaiting Confirmation"
@@ -838,7 +838,7 @@ const CalendarView = ({ selectedDate }) => {
           </>
         )}
 
-        {(selectedEvent?.status === "Approved" || selectedEvent?.status === "Awaiting Confirmation") && !isEditing &&(
+        {(selectedEvent?.status === "Awaiting Confirmation") && !isEditing &&(
           <>
             <Button onClick={handleDisapprove} color="error">
               Disapprove
@@ -849,12 +849,20 @@ const CalendarView = ({ selectedDate }) => {
           </>
         )}
 
-        {(selectedEvent?.status === "Approved" || selectedEvent?.status === "Awaiting Confirmation") && isEditing && (
+        {(selectedEvent?.status === "Awaiting Confirmation") && isEditing && (
           <>
             <Button onClick={handleSubmitApproval} variant="contained">
               Save Changes
             </Button>
             <Button onClick={() => setIsEditing(false)}>Cancel Edit</Button>
+          </>
+        )}
+
+        {(selectedEvent?.status === "Approved") &&(
+          <>
+            <Button onClick={handleDisapprove} color="error">
+              Disapprove
+            </Button>
           </>
         )}
 

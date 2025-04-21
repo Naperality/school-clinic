@@ -125,14 +125,14 @@ const VaccineForm = () => {
             margin: "normal",
             sx: {
               "& .MuiInputBase-root": {
-                backgroundColor: "#1b2838",
-                color: "#fff",
+                backgroundColor: "#fff",
+                color: "black",
               },
               "& .MuiInputBase-input": {
-                color: "#fff",
+                color: "black",
               },
               "& .MuiInputLabel-root": {
-                color: "#fff",
+                color: "black",
               },
               "& .MuiInputLabel-root.Mui-focused": {
                 color: "#1abc9c",

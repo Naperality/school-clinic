@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 
-import LoginRedirect from "./pages/LoginRedirect";
+import LoginRedirect from "./pages/Login";
 import SignupRedirect from "./pages/SignupRedirect";
 import Welcome from "./pages/Welcome";
 import StaffDashboard from "./pages/StaffDashboard";
@@ -23,6 +23,7 @@ const AnimatedRoutes = () => {
         <Route path="/login" element={<LoginRedirect />} />
         <Route path="/signup" element={<SignupRedirect />} />
         <Route path="/dashboard" element={<Dashboard />} />
+         {/* Doctor layout route */}
         <Route path="/doctor-dashboard" element={<DoctorsDashboard />} />
         <Route
           path="/staff"

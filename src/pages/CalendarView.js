@@ -99,7 +99,7 @@ const CalendarView = ({ selectedDate }) => {
         if (status === "Approved" && data.confirmedTime?.toDate) {
           startDate = data.confirmedTime.toDate();
           endDate = new Date(startDate);
-          endDate.setHours(startDate.getHours() + 1);
+          endDate.setHours(startDate.getHours() + 3);
   
           // ✅ If time passed, mark as Done and update Firestore
           if (endDate < now) {
